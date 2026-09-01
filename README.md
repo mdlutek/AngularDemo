@@ -9,7 +9,7 @@ Nowoczesna aplikacja webowa typu Full-Stack do zarządzania katalogiem bibliotec
 ### Backend
 * **.NET 10** – ASP.NET Core Web API (Controllers, Dependency Injection, Swagger/OpenAPI)
 * **MongoDB** – Baza danych NoSQL (oficjalny sterownik `MongoDB.Driver`)
-* **C# 14 / C# 13**
+* **C# 14**
 
 ### Frontend
 * **Angular** (najnowsza wersja: Standalone Components, Signals, Reactive Forms)
