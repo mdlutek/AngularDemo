@@ -19,9 +19,14 @@ builder.Services.AddSwaggerGen();
 // Konfiguracja CORS (umożliwia komunikację z Angulara)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngularDev", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+        policy.WithOrigins(
+                  "https://angulardemo.md-dev.net.pl",
+                  "http://angulardemo.md-dev.net.pl",
+                  "http://localhost:4200",
+                  "https://localhost:4200"
+              )
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -36,7 +41,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAngularDev");
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapControllers();
 
