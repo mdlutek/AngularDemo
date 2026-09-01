@@ -1,11 +1,18 @@
 using LibraryApi.Services;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Rejestracja serwisu MongoDB
 builder.Services.AddSingleton<BooksService>();
 
-builder.Services.AddControllers();
+// Umożliwiamy przyjmowanie i zwracanie statusów jako tekst ("Available", "Borrowed")
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

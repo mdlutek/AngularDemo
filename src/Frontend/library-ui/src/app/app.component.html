@@ -1,0 +1,138 @@
+<div class="container">
+  <header class="header">
+    <div class="logo">
+      <h1>📚 Biblioteka Online</h1>
+      <span class="badge-tech">.NET 10 + Angular 22 + MongoDB Atlas</span>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Formularz dodawania książki -->
+    <section class="card form-card">
+      <h2>➕ Dodaj nową książkę</h2>
+      <form (ngSubmit)="onAddBook()" class="book-form">
+        <div class="form-group">
+          <label>Tytuł:</label>
+          <input
+            type="text"
+            [(ngModel)]="newBook.title"
+            name="title"
+            placeholder="np. W pustyni i w puszczy"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Autor:</label>
+          <input
+            type="text"
+            [(ngModel)]="newBook.author"
+            name="author"
+            placeholder="np. Henryk Sienkiewicz"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ISBN:</label>
+            <input type="text" [(ngModel)]="newBook.isbn" name="isbn" placeholder="978-83-..." />
+          </div>
+
+          <div class="form-group">
+            <label>Rok wydania:</label>
+            <input type="number" [(ngModel)]="newBook.publishedYear" name="year" />
+          </div>
+
+          <div class="form-group">
+            <label>Kategoria:</label>
+            <select [(ngModel)]="newBook.category" name="category">
+              <option value="Fantasy">Fantasy</option>
+              <option value="Kryminał">Kryminał</option>
+              <option value="Sci-Fi">Sci-Fi</option>
+              <option value="Klasyka">Klasyka</option>
+              <option value="Inne">Inne</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Dodaj do bazy</button>
+      </form>
+    </section>
+
+    <!-- Katalog książek pobrany z Azure -->
+    <section class="catalog-section">
+      <h2>📖 Katalog Książek ({{ bookService.books().length }})</h2>
+
+      <div *ngIf="bookService.isLoading()" class="loading">
+        ⏳ Pobieranie danych z Azure App Service...
+      </div>
+
+      <div *ngIf="!bookService.isLoading() && bookService.books().length === 0" class="empty-state">
+        Brak książek w bibliotece. Dodaj pierwszą pozycję powyżej!
+      </div>
+
+      <div class="book-grid">
+        <div
+          *ngFor="let book of bookService.books()"
+          class="book-card"
+          [class.borrowed]="!isAvailable(book.status)"
+        >
+          <div class="book-header">
+            <span class="category-tag">{{ book.category }}</span>
+            <span
+              class="status-badge"
+              [class.status-available]="isAvailable(book.status)"
+              [class.status-borrowed]="!isAvailable(book.status)"
+            >
+              {{ isAvailable(book.status) ? '🟢 Dostępna' : '🔴 Wypożyczona' }}
+            </span>
+          </div>
+
+          <h3 class="book-title">{{ book.title }}</h3>
+          <p class="book-author">✍️ {{ book.author }} ({{ book.publishedYear }})</p>
+          <p class="book-isbn" *ngIf="book.isbn">ISBN: {{ book.isbn }}</p>
+
+          <!-- Sekcja wypożyczenia -->
+          <div *ngIf="!isAvailable(book.status)" class="borrow-info">
+            <p>
+              👤 Wypożyczający: <strong>{{ book.borrowedBy }}</strong>
+            </p>
+            <p *ngIf="book.borrowedAt">
+              <small>📅 {{ book.borrowedAt | date: 'dd.MM.yyyy HH:mm' }}</small>
+            </p>
+          </div>
+
+          <!-- Akcje -->
+          <div class="book-actions">
+            <div *ngIf="isAvailable(book.status)" class="borrow-form">
+              <input
+                type="text"
+                [(ngModel)]="borrowerNames[book.id!]"
+                placeholder="Nazwisko czytelnika"
+              />
+              <button type="button" class="btn btn-success" (click)="onBorrow(book.id)">
+                Wypożycz
+              </button>
+            </div>
+
+            <div *ngIf="!isAvailable(book.status)">
+              <button type="button" class="btn btn-warning" (click)="onReturn(book.id)">
+                Zwróć książkę
+              </button>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-danger"
+              (click)="onDeleteBook(book.id)"
+              title="Usuń z bazy"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
