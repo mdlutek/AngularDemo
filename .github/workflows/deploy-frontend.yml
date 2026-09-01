@@ -1,0 +1,59 @@
+name: Deploy Angular Frontend to TheCamels (FTP)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/Frontend/**' # Uruchamia się tylko, gdy zmieniasz coś we frontendzie
+  workflow_dispatch:      # Pozwala też uruchomić deploy ręcznie jednym kliknięciem
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Pobierz kod repozytorium
+        uses: actions/checkout@v4
+
+      - name: 🟢 Skonfiguruj Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: 'src/Frontend/library-ui/package-lock.json'
+
+      - name: 📦 Zainstaluj zależności npm
+        run: |
+          cd src/Frontend/library-ui
+          npm ci
+
+      - name: 🏗️ Zbuduj projekt Angular
+        run: |
+          cd src/Frontend/library-ui
+          npx ng build --configuration production
+
+      - name: 📄 Dodaj plik .htaccess dla routingu SPA
+        run: |
+          cat << 'EOF' > src/Frontend/library-ui/dist/library-ui/browser/.htaccess
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+          </IfModule>
+          EOF
+
+      - name: 🚀 Wgraj pliki przez FTP na TheCamels
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Ścieżka lokalna ze zbudowanymi plikami:
+          local-dir: src/Frontend/library-ui/dist/library-ui/browser/
+          # Ścieżka na serwerze TheCamels (dostosuj jeśli to np. public_html/subdomena):
+          server-dir: public_html/
+          dangerous-clean-slate: false # 'true' usuwa stare pliki przed wgraniem nowych
