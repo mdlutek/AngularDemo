@@ -9,10 +9,16 @@ public class BooksService
 
     public BooksService(IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("MongoDb");
-        var mongoUrl = MongoUrl.Create(connectionString);
-        var mongoClient = new MongoClient(mongoUrl);
-        var database = mongoClient.GetDatabase(mongoUrl.DatabaseName ?? "LibraryDb");
+        // Sprawdza po kolei: ConnectionStrings:MongoDb, MONGODB_URI oraz MongoDb
+        var connectionString = configuration.GetConnectionString("MongoDb")
+            ?? configuration["ConnectionStrings:MongoDb"]
+            ?? configuration["ConnectionStrings__MongoDb"]
+            ?? configuration["MONGODB_URI"]
+            ?? configuration["MongoDb"]
+            ?? throw new InvalidOperationException("Brak Connection Stringa do MongoDB!");
+
+        var mongoClient = new MongoClient(connectionString);
+        var database = mongoClient.GetDatabase("LibraryDb");
 
         _booksCollection = database.GetCollection<Book>("Books");
     }
