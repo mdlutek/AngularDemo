@@ -46,14 +46,15 @@ jobs:
           </IfModule>
           EOF
 
-      - name: 🚀 Wgraj pliki przez FTP na TheCamels
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          # Ścieżka lokalna ze zbudowanymi plikami:
-          local-dir: src/Frontend/library-ui/dist/library-ui/browser/
-          # Ścieżka na serwerze TheCamels (dostosuj jeśli to np. public_html/subdomena):
-          server-dir: public_html/
-          dangerous-clean-slate: false # 'true' usuwa stare pliki przed wgraniem nowych
+      - name: 🚀 Wgraj pliki na TheCamels (IPv4)
+        run: |
+          sudo apt-get update && sudo apt-get install -y lftp
+          lftp -e "
+            set dns:order inet;
+            set ftp:prefer-epsv false;
+            set ftp:passive-mode true;
+            set ftp:ssl-allow no;
+            open -u ${{ secrets.FTP_USERNAME }},'${{ secrets.FTP_PASSWORD }}' ${{ secrets.FTP_SERVER }};
+            mirror --reverse --verbose src/Frontend/library-ui/dist/library-ui/browser/ public_html/;
+            quit
+          "
