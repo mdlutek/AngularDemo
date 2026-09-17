@@ -1,8 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookService } from './services/book.service';
 import { Book, BookStatus } from './models/book.model';
+
+type ViewTab = 'all' | 'available' | 'borrowed' | 'add' | 'stats';
 
 @Component({
   selector: 'app-root',
@@ -14,12 +16,18 @@ import { Book, BookStatus } from './models/book.model';
 export class AppComponent implements OnInit {
   bookService = inject(BookService);
 
+  // Stan nawigacji i wyszukiwania
+  activeTab = signal<ViewTab>('all');
+  searchQuery = signal<string>('');
+  selectedCategory = signal<string>('all');
+
+  // Formularz nowej książki
   newBook: Book = {
     title: '',
     author: '',
     isbn: '',
     publishedYear: new Date().getFullYear(),
-    category: 'Inne',
+    category: 'Fantasy',
     status: BookStatus.Available,
   };
 
@@ -29,13 +37,55 @@ export class AppComponent implements OnInit {
     this.bookService.loadBooks().subscribe();
   }
 
+  // Obliczane na żywo: Przefiltrowana lista książek (Signals computed)
+  filteredBooks = computed(() => {
+    const list = this.bookService.books();
+    const query = this.searchQuery().toLowerCase().trim();
+    const tab = this.activeTab();
+    const cat = this.selectedCategory();
+
+    return list.filter((book) => {
+      // Filtr zakładek
+      const isAvail = this.isAvailable(book.status);
+      if (tab === 'available' && !isAvail) return false;
+      if (tab === 'borrowed' && isAvail) return false;
+
+      // Filtr kategorii
+      if (cat !== 'all' && book.category !== cat) return false;
+
+      // Filtr wyszukiwarki
+      if (!query) return true;
+      return (
+        book.title?.toLowerCase().includes(query) ||
+        book.author?.toLowerCase().includes(query) ||
+        book.isbn?.toLowerCase().includes(query)
+      );
+    });
+  });
+
+  // Obliczane na żywo: Statystyki biblioteki
+  stats = computed(() => {
+    const list = this.bookService.books();
+    const total = list.length;
+    const borrowed = list.filter((b) => !this.isAvailable(b.status)).length;
+    const available = total - borrowed;
+    const borrowRate = total > 0 ? Math.round((borrowed / total) * 100) : 0;
+
+    return { total, available, borrowed, borrowRate };
+  });
+
+  // Zmiana aktywnej zakładki
+  setTab(tab: ViewTab) {
+    this.activeTab.set(tab);
+  }
+
+  // Dodawanie książki
   onAddBook() {
     if (!this.newBook.title || !this.newBook.author) {
       alert('Podaj przynajmniej tytuł i autora!');
       return;
     }
 
-    // Tworzymy czysty obiekt do wysłania (bez pola id)
     const bookToSend: Book = {
       title: this.newBook.title,
       author: this.newBook.author,
@@ -47,7 +97,6 @@ export class AppComponent implements OnInit {
 
     this.bookService.addBook(bookToSend).subscribe({
       next: () => {
-        // Reset formularza
         this.newBook = {
           title: '',
           author: '',
@@ -56,13 +105,12 @@ export class AppComponent implements OnInit {
           category: 'Fantasy',
           status: BookStatus.Available,
         };
+        this.activeTab.set('all'); // Przejdź do katalogu po dodaniu
       },
-      error: (err) => {
-        console.error(err);
-        alert('Błąd podczas dodawania: ' + (err.error?.title || err.message));
-      },
+      error: (err) => alert('Błąd: ' + (err.error?.title || err.message)),
     });
   }
+
   onDeleteBook(id?: string) {
     if (!id) return;
     if (confirm('Czy na pewno chcesz usunąć tę książkę?')) {
