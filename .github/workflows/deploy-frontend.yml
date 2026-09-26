@@ -1,4 +1,4 @@
-name: Deploy Angular Frontend to TheCamels (FTP)
+name: Deploy Angular Frontend to FTP
 
 on:
   push:
